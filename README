@@ -1,0 +1,83 @@
+gerrit-contactstore
+===================
+
+Utilities to receive contact information for individual users from
+Gerrit and archive them in an encrypted store.
+
+Gerrit connects to the store by sending a standard HTTP POST request
+to the store URL, with the following form parameters in the body:
+
+* APPSEC
+
+  A shared secret "password" that should be known only to Gerrit
+  and the contact store.  The contact store should test this value
+  to deter spamming of the contact store by outside parties.
+
+* account_id
+
+  Unique account_id value from the Gerrit database for the account
+  the contact information belongs to.  Base 10 integer.
+
+* email
+
+  Preferred email address of the account.  May facilitate lookups
+  in the contact store at a future date.  May not be provided.
+
+* filed
+
+  Seconds since the UNIX epoch of when the contact information
+  was filed.  May be omitted or the empty string if the application
+  doesn't think the supplied contact information is valid enough.
+
+* data
+
+  Encrypted account data as an armored ASCII blob.  This is usually
+  several KB of text data as a single string, with embedded newlines
+  to break the lines at about 70-75 characters.  Data can be decoded
+  using GnuPG with the correct private key.
+
+Using HTTPS for the store is encouraged, as it prevents
+man-in-the-middle attacks at reading the shared secret
+APPSEC token, or messing with the data packet.
+
+A successful store should respond with HTTP status code "200 OK"
+and a text/plain content consisting of only "OK\n".  Any other
+response is considered to be a store failure.
+
+
+Implementations
+---------------
+
+google_appengine/
+~~~~~~~~~~~~~~~~~
+
+This implementation of the contact store runs on Google App Engine.
+
+It is a two very small Python CGIs: main.py receives the data and
+secure.py permits some limited searching and retrieval of the data
+by the application's owners (aka "developers" to Google App Engine).
+
+The encrypted data payload is stored as-is when received; that is
+the data stays fully encrypted within AppEngine, and the private
+key is never stored on AppEngine.  It is therefore impossible for
+Google to decipher or otherwise read the contact information stored.
+
+To use this implementation, sign up for a free AppEngine account,
+then install the code with:
+
+  cd google_appengine
+  make APPID=your-app-id-here update
+
+and configure Gerrit to use your new application instance:
+
+  $ psql reviewdb
+  UPDATE system_config SET
+   contact_store_url = 'https://your-app-id-here.appspot.com/store'
+  ,contact_store_appsec = 'appsec-key-printed-during-update';
+
+Later you can search for and download the encrypted contact
+information by visiting your application over the web at
+https://your-app-id-here.appspot.com/.  Note that you must
+sign-in with a developer account.  This provides a very simple
+access control system; to add additional users invite them to
+be developers of your application.

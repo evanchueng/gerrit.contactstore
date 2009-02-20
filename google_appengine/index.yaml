@@ -1,0 +1,24 @@
+indexes:
+
+- kind: ContactInfo
+  properties:
+  - name: account_id
+  - name: filed
+    direction: desc
+  - name: __key__
+
+- kind: ContactInfo
+  properties:
+  - name: email
+  - name: account_id
+  - name: filed
+    direction: desc
+  - name: __key__
+
+- kind: ContactInfo
+  properties:
+  - name: domain
+  - name: account_id
+  - name: filed
+    direction: desc
+  - name: __key__
